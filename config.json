@@ -1,0 +1,36 @@
+{
+    "name": "Move Data to Other Event",
+    "description": "Move data from fields, forms, or events to other events",
+    "namespace": "MDOE\\ExternalModule",
+    "framework-version": 3,
+    "permissions": [
+        "redcap_every_page_top",
+        "redcap_save_record"
+    ],
+    "authors": [
+        {
+            "name": "Kyle Chesey",
+            "email": "kyle.chesney@ufl.edu",
+            "institution": "University of Florida - CTSI"
+        }
+    ],
+    "system-settings": [
+        {
+            "key": "restrict_to_designers_global",
+            "name": "Restrict use to designers globally",
+            "type": "checkbox"
+        }
+    ],
+    "project-settings": [
+        {
+            "key": "active",
+            "name": "Activate for use",
+            "type": "checkbox"
+        },
+        {
+            "key": "allow_non_designers",
+            "name": "Allow non-designers to see and use this module",
+            "type": "checkbox"
+        }
+    ]
+}
