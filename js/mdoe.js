@@ -63,7 +63,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let thisColValues = $( `#event_grid_table tbody tr td:nth-child(${colIndex+1})` );
         thisColValues.css("background-color", "#ff9933");
 
-        //$("#dialog-mdoe")
         dialogForm
             .on('dialogclose', function(event) { thisColValues.css("background-color", ""); })
             .dialog( "open" );
@@ -86,18 +85,19 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function sendAjaxForEvent(fromEventId, targetEventId) {
-    console.log(fromEventId);
-    console.log(targetEventId);
-    console.log(ajaxpage);
+    const searchParams = new URLSearchParams(window.location.search);
 
     $.get({
     url: ajaxpage,
     data: {
             fromEventId: fromEventId,
-            targetEventId: targetEventId
+            targetEventId: targetEventId,
+            recordId: searchParams.get('id'),
+            projectId: searchParams.get('pid')
           },
     },
-    function(data) { console.log(data); });
+    function(data) { console.log(data); /*TODO: use response to report errors*/ })
+    .done(function() { location.reload(); });
 
     //TODO: update UI with change or reload page on good $RESPONSE
 
