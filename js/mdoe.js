@@ -21,28 +21,36 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log(formLinks);
 
-    dialogForm = $( "#dialog-mdoe" ).dialog({
-      autoOpen: false,
-      draggable: true,
-      resizable: true,
-      modal: true,
-      buttons: {
-        "Migrate Event Data": function() { console.log($(this).find('option')); sendAjaxForEvent('hello world'); },
-        Cancel: function() {
-          $(this).dialog( "close" );
-        }
-      },
-    });
-
     $( ".mdoe-event" ).on( "click", function() {
         let colIndex = $(this).parent().index();
 
         let otherCols = $( "#event_grid_table thead tr th" ).toArray();
-        otherCols.splice(colIndex, 1); // Remove this event column
+
+        let thisCol = otherCols.splice(colIndex, 1); // Remove this event column
+        const fromEventId = thisCol[0].children[1].className.split('evGridHdrInstance-')[1].split(' ', 1)[0]; // TODO: pop this from titles
         otherCols.shift(); // Remove form label column
 
         let titles = {}; // title name : event_id
         otherCols.forEach( element => titles[element.children[0].textContent] = element.children[1].className.split('evGridHdrInstance-')[1].split(' ', 1)[0] );
+
+        //TODO: prune down titles to only those with the same forms AND they are empty
+
+        let dialogForm = $( "#dialog-mdoe" ).dialog({
+          autoOpen: false,
+          draggable: true,
+          resizable: true,
+          modal: true,
+          buttons: {
+            "Migrate Event Data": function() {
+                let targetEventId = $(this).find('select').find(':selected').val();
+                //sendAjaxForEvent('hello world');
+                sendAjaxForEvent(fromEventId, targetEventId);
+            },
+            Cancel: function() {
+              $(this).dialog( "close" );
+            }
+          },
+        });
 
         $(dialogForm).find('option').remove();
         for ( let [key,value] of Object.entries(titles) ) {
@@ -77,11 +85,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-function sendAjaxForEvent(str) {
-    //console.log(str);
-    var ajax = new XMLHttpRequest();
-    ajax.onreadystatechange = function() { console.log(this.responseText)};
-    ajax.open("GET", ajaxpage + "?q=" + str, true);
-    //ajax.open("GET", "migratedata.php?q=" + str, true);
-    ajax.send();
+function sendAjaxForEvent(fromEventId, targetEventId) {
+    console.log(fromEventId);
+    console.log(targetEventId);
+    console.log(ajaxpage);
+
+    $.get({
+    url: ajaxpage,
+    data: {
+            fromEventId: fromEventId,
+            targetEventId: targetEventId
+          },
+    },
+    function(data) { console.log(data); });
+
+    //TODO: update UI with change or reload page on good $RESPONSE
+
+    //TODO: analyze pros and cons of jQuery AJAX wrapper
+    //var ajax = new XMLHttpRequest();
+    //ajax.onreadystatechange = function() { console.log(this.responseText)};
+    //ajax.open("GET", ajaxpage + "?q=" + str, true);
+    //ajax.send();
 }
