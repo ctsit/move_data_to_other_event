@@ -1,4 +1,5 @@
 let formButton = $( '<i class="fas fa-truck" type="image" style="padding: 5px;"/>' );
+$( "#dialog-mdoe" ).dialog({autoOpen: false});
 const eFormButton = formButton.clone().addClass('mdoe-event');
 const fFormButton = formButton.clone().addClass('mdoe-form');
 
