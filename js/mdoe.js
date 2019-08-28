@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let otherCols = $( "#event_grid_table thead tr th" ).toArray();
 
         let thisCol = otherCols.splice(colIndex, 1); // Remove this event column
-        const fromEventId = thisCol[0].children[1].className.split('evGridHdrInstance-')[1].split(' ', 1)[0]; // TODO: pop this from titles
+        const sourceEventId = thisCol[0].children[1].className.split('evGridHdrInstance-')[1].split(' ', 1)[0]; // TODO: pop this from titles
         otherCols.shift(); // Remove form label column
 
         let titles = {}; // title name : event_id
@@ -43,8 +43,8 @@ document.addEventListener('DOMContentLoaded', function() {
           buttons: {
             "Migrate Event Data": function() {
                 let targetEventId = $(this).find('select').find(':selected').val();
-                //sendAjaxForEvent('hello world');
-                sendAjaxForEvent(fromEventId, targetEventId);
+                sendAjaxForEvent(sourceEventId, targetEventId);
+                // TODO: check that previous worked before deleting
             },
             Cancel: function() {
               $(this).dialog( "close" );
@@ -84,26 +84,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-function sendAjaxForEvent(fromEventId, targetEventId) {
+function sendAjaxForEvent(sourceEventId, targetEventId) {
     const searchParams = new URLSearchParams(window.location.search);
 
     $.get({
-    url: ajaxpage,
-    data: {
-            fromEventId: fromEventId,
-            targetEventId: targetEventId,
-            recordId: searchParams.get('id'),
-            projectId: searchParams.get('pid')
-          },
-    },
-    function(data) { console.log(data); /*TODO: use response to report errors*/ })
-    .done(function() { location.reload(); });
-
-    //TODO: update UI with change or reload page on good $RESPONSE
-
-    //TODO: analyze pros and cons of jQuery AJAX wrapper
-    //var ajax = new XMLHttpRequest();
-    //ajax.onreadystatechange = function() { console.log(this.responseText)};
-    //ajax.open("GET", ajaxpage + "?q=" + str, true);
-    //ajax.send();
+        url: ajaxpage,
+        data: {
+                sourceEventId: sourceEventId,
+                targetEventId: targetEventId,
+                recordId: searchParams.get('id'),
+                projectId: searchParams.get('pid')
+              },
+        })
+    .done(function(data) {
+            console.log(data);
+            // TODO: use response to report errors, toggle event deletion
+            doDeleteEventInstance(sourceEventId); // reloads page on completion
+            });
 }

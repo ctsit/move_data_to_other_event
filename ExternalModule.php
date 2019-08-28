@@ -19,16 +19,34 @@ class ExternalModule extends AbstractExternalModule {
     }
 
     function includeJs($path) {
-        echo '<script src="' . $this->framework->getUrl($path) . '">';
+        echo '<script src="' . $this->getUrl($path) . '">;</script>';
     }
 
-    function moveEvent($from_event_id, $target_event_id, $record_id = NULL) {
-    $record_id = $record_id ?: ( ($this->framework->getRecordId()) ?: "failed" ); // return in place of "failed" causes error
+    function moveEvent($source_event_id, $target_event_id, $record_id = NULL, $project_id = NULL) {
+    $record_id = $record_id ?: ( ($this->framework->getRecordId()) ?: NULL ); // return in place of NULL causes errors
+    $project_id = $project_id ?: ( ($this->framework->getProjectId()) ?: NULL );
 
-    $sql = "UPDATE redcap_data SET event_id = {$target_event_id} WHERE project_id = " . $this->framework->getProjectId() . " " .
-    "AND event_id = {$from_event_id} " .
-    "AND record = {$record_id};";
-    $response = $this->framework->query($sql);
-    // TODO: parse response for errors
+    $get_data = [
+        'project_id' => $project_id,
+        //'return_format' => 'json',
+        'return_format' => 'array',
+        'records' => $record_id,
+        'fields' => NULL,
+        'events' => $source_event_id
+    ];
+
+    // get record for selected event, swap source_event_id for target_event_id
+    $data = REDCap::getData($get_data);
+    $data[$record_id][$target_event_id] = $data[$record_id][$source_event_id];
+    unset($data[$record_id][$source_event_id]);
+
+    $response = REDCap::saveData($project_id, 'array', $data, 'normal');
+    // TODO: parse response, use as flag for deletion
+
+    return json_encode($response);
+
+    // Event is deleted via call to core JS function, deleteEventInstance which wraps \Controller\DataEntryController
+    // requires POST and GET data from the record_home page
+
     }
 }
