@@ -25,9 +25,17 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
     $.each(formLinks, function(i, link) {
-            // $element.prependTo(link); does not work, only appears on last element
-            fDialogButton.clone().insertBefore(link);
-            });
+            try {
+            const im = link.firstChild.src;
+            // TODO: endsWith(array)
+                if ( im.endsWith('circle_green.png') || im.endsWith('circle_yellow.png') || im.endsWith('circle_red.png') ) {
+                    // $element.prependTo(link); does not work, only appears on last element
+                    fDialogButton.clone().insertBefore(link);
+                }
+            } catch (TypeError) {
+                // end of rows
+            }
+        });
 
     // actions for event movement
     $( ".mdoe-event" ).on( "click", function() {
@@ -144,6 +152,7 @@ function ajaxMoveForm(sourceEventId, targetEventId, formName) {
                 // TODO: parse and report errors
                 return 0;
             }
+            location.reload();
             //TODO: delete only the contents of this form
             //doDeleteEventInstance(sourceEventId); // reloads page on completion
             });
