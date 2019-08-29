@@ -13,7 +13,8 @@ class ExternalModule extends AbstractExternalModule {
         // __DIR__ . '/migratedataphp'; does not work due to VM symlink(?)
         $ajax_page = json_encode($this->framework->getUrl("migratedata.php"));
 
-        //$this->moveForm(125, 131, 1, 22, 'participant_info_survey', true);
+        $form = 'participant_morale_questionnaire';
+        $this->moveForm(128, 126, 1, 22, $form, true);
 
         echo ("<script> var ajaxpage = {$ajax_page}; </script>");
         include('div.html');
@@ -64,7 +65,7 @@ class ExternalModule extends AbstractExternalModule {
             INNER JOIN (SELECT form_name FROM redcap_events_forms WHERE event_id = " . ($source_event_id) .  ")
             as b ON a.form_name = b.form_name
             WHERE a.project_id = " . ($project_id) . "
-            AND a.form_name = 'prescreening_survey';";
+            AND a.form_name = '" . ($form_name) . "';";
 
         $fields = [];
         $result= $this->framework->query($sql);
@@ -85,8 +86,14 @@ class ExternalModule extends AbstractExternalModule {
         $data = REDCap::getData($get_data);
 
         // get record for selected event, swap source_event_id for target_event_id
+        $deletion_data = $data;
         $data[$record_id][$target_event_id] = $data[$record_id][$source_event_id];
         unset($data[$record_id][$source_event_id]);
+
+        // Backfill null as a "deletion" of data for a single form
+        foreach ($fields as $field) {
+            $deletion_data[$record_id][$source_event_id][$field] = NULL;
+        }
 
         if ($debug) {
             print_r("<pre>");
@@ -101,16 +108,16 @@ class ExternalModule extends AbstractExternalModule {
             var_dump($fields);
             print_r("\nData:\n ");
             var_dump($data);
+            print_r("\nDeletion data:\n ");
+            var_dump($deletion_data);
             print_r("</pre>");
             return;
         }
 
         $response = REDCap::saveData($project_id, 'array', $data, 'normal');
-        // TODO: parse response, use as flag for deletion
+        // TODO: parse response, use as flag for toggling deletion
 
-        return json_encode($response);
-
-        //TODO: log event
-
+        $d = REDCap::saveData($project_id, 'array', $deletion_data, 'overwrite'); // handle deletion via backend
+        return json_encode($d);
     }
 }
