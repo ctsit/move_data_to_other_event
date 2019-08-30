@@ -14,7 +14,7 @@ class ExternalModule extends AbstractExternalModule {
         $ajax_page = json_encode($this->framework->getUrl("migratedata.php"));
 
         $form = 'participant_morale_questionnaire';
-        $this->moveForm(128, 126, 1, 22, $form, true);
+        //$this->moveForm(127, 126, 1, 22, $form, true);
 
         echo ("<script> var ajaxpage = {$ajax_page}; </script>");
         include('div.html');
@@ -31,7 +31,6 @@ class ExternalModule extends AbstractExternalModule {
 
         $get_data = [
             'project_id' => $project_id,
-            //'return_format' => 'json',
             'return_format' => 'array',
             'records' => $record_id,
             'fields' => NULL,
@@ -44,15 +43,14 @@ class ExternalModule extends AbstractExternalModule {
         unset($data[$record_id][$source_event_id]);
 
         $response = REDCap::saveData($project_id, 'array', $data, 'normal');
-        // TODO: parse response, use as flag for deletion
 
+        REDCap::logEvent("Moved all from an event to a different event", "Migrated " . $form_name . " from event " . $source_event_id . " to " . $target_event_id);
+
+        // TODO: parse response, use as flag for deletion
         return json_encode($response);
 
         // Event data is deleted via call to core JS function, deleteEventInstance which wraps \Controller\DataEntryController
         // requires POST and GET data from the record_home page
-
-        //TODO: log event
-
     }
 
     function moveForm($source_event_id, $target_event_id, $record_id = NULL, $project_id = NULL, $form_name = NULL, $debug = false) {
@@ -118,6 +116,39 @@ class ExternalModule extends AbstractExternalModule {
         // TODO: parse response, use as flag for toggling deletion
 
         $d = REDCap::saveData($project_id, 'array', $deletion_data, 'overwrite'); // handle deletion via backend
+        $this->framework->log("Migrated " . $form_name . " from event " . $source_event_id . " to " . $target_event_id); // Does not show up in activity log
+
+        $log_message = "Migrated " . $form_name . " from event " . $source_event_id . " to " . $target_event_id;
+
+        $check_old = REDCap::getData($get_data)[$record_id][$source_event_id];
+
+        // check for fields which did not transfer
+        $revisit_fields = [];
+        foreach ($check_old as $field => $value) {
+            if ($value) {
+                $revisit_fields[] = $field;
+            }
+        }
+
+        if ($revisit_fields != []) {
+            // Raw SQL to transfer docs which do not transfer or delete with saveData
+            $docs_xfer_sql = "UPDATE redcap_data SET event_id = " . $target_event_id . "
+                WHERE project_id = " . $project_id . "
+                AND event_id = " . $source_event_id . "
+                AND record = " . $record_id . "
+                AND field_name = '" . array_shift($revisit_fields) . "'";
+
+            foreach($revisit_fields as $field_name) {
+                $docs_xfer_sql .= " OR field_name = '" . $field_name . "'";
+            }
+
+            $docs_xfer_sql .= ";";
+
+            $this->framework->query($docs_xfer_sql);
+            $log_message .= ". Forced transfer of additional fields";
+        }
+
+        REDCap::logEvent("Moved data from a single form to a different event", $log_message);
         return json_encode($d);
     }
 }
