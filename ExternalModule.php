@@ -43,8 +43,12 @@ class ExternalModule extends AbstractExternalModule {
         unset($data[$record_id][$source_event_id]);
 
         $response = REDCap::saveData($project_id, 'array', $data, 'normal');
+        $log_message = "Migrated " . $form_name . " from event " . $source_event_id . " to " . $target_event_id;
 
-        REDCap::logEvent("Moved all from an event to a different event", "Migrated " . $form_name . " from event " . $source_event_id . " to " . $target_event_id);
+
+        $log_message = $this->forceMigrateSourceFields($get_data, $project_id, $record_id, $source_event_id, $target_event_id, $log_message);
+
+        REDCap::logEvent("Moved all from an event to a different event", $log_message);
 
         // TODO: parse response, use as flag for deletion
         return json_encode($response);
@@ -63,7 +67,8 @@ class ExternalModule extends AbstractExternalModule {
             INNER JOIN (SELECT form_name FROM redcap_events_forms WHERE event_id = " . ($source_event_id) .  ")
             as b ON a.form_name = b.form_name
             WHERE a.project_id = " . ($project_id) . "
-            AND a.form_name = '" . ($form_name) . "';";
+            AND a.form_name = '" . ($form_name) . "
+            ORDER BY field_order ASC';";
 
         $fields = [];
         $result= $this->framework->query($sql);
@@ -120,6 +125,14 @@ class ExternalModule extends AbstractExternalModule {
 
         $log_message = "Migrated " . $form_name . " from event " . $source_event_id . " to " . $target_event_id;
 
+
+        $log_message = $this->forceMigrateSourceFields($get_data, $project_id, $record_id, $source_event_id, $target_event_id, $log_message);
+
+        REDCap::logEvent("Moved data from a single form to a different event", $log_message);
+        return json_encode($d);
+    }
+
+    function forceMigrateSourceFields($get_data, $project_id, $record_id, $source_event_id, $target_event_id, $log_message) {
         $check_old = REDCap::getData($get_data)[$record_id][$source_event_id];
 
         // check for fields which did not transfer
@@ -147,8 +160,6 @@ class ExternalModule extends AbstractExternalModule {
             $this->framework->query($docs_xfer_sql);
             $log_message .= ". Forced transfer of additional fields";
         }
-
-        REDCap::logEvent("Moved data from a single form to a different event", $log_message);
-        return json_encode($d);
+        return $log_message;
     }
 }

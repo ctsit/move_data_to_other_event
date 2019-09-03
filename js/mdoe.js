@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
             eDialogButton.clone().appendTo(eventColumn);
             });
 
-    $.each(formLinks, function(i, link) {
+    $.each(formLinks.slice(1), function(i, link) {
             try {
             const im = link.firstChild.src;
             // TODO: endsWith(array)
