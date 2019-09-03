@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let eventTitles = {}; // event_id : title name
     eventColumns.toArray().forEach( element => eventTitles[element.children[1].className.split('evGridHdrInstance-')[1].split(' ', 1)[0] ] = element.children[0].textContent);
 
-    console.log(eventTitles);
     $.each(eventColumns, function(i, eventColumn) { 
             // $element.appendTo(dialogButton); does not work, only appears on last element
             eDialogButton.clone().appendTo(eventColumn);
@@ -77,14 +76,29 @@ document.addEventListener('DOMContentLoaded', function() {
     $( ".mdoe-form" ).on( "click", function() {
 
         const params = new URLSearchParams($(this).next().attr('href'));
-        console.log(params.get('page'));
 
         // TODO: use this to exclude cells containing anything other than grey icons
-        let thisRow = $(this).parent().parent('tr');
-        let movableEvents = thisRow.children();
+        const rowSiblings = $(this).parent().siblings();
 
-        let titles = {...eventTitles}; // deep copy
-        delete titles[params.get('event_id')];
+        // extract ids of cells containing unfilled forms
+        let validEventIds = [];
+        $.each(rowSiblings, function(cellNum, col) {
+            try {
+                const thisCell = col.firstChild;
+                img = thisCell.firstChild.src;
+                if (img.endsWith('circle_gray.png')) {
+                    const thisEventId = thisCell.href
+                                        .split('event_id=')
+                                        .pop()
+                                        .split('&')
+                                        .shift();
+                    validEventIds.push(thisEventId);
+                }
+            }
+            catch(TypeError) {
+            // skip invalid cells
+            }
+        });
 
         let dialogForm = $( "#dialog-mdoe" ).dialog({
           buttons: {
@@ -100,9 +114,10 @@ document.addEventListener('DOMContentLoaded', function() {
           },
         });
 
+        // refresh selectable options
         $(dialogForm).find('option').remove();
-        for ( let [id,title] of Object.entries(titles) ) {
-            $('#mdoe-select').append(`<option value="${id}">${title}</option>`);
+        for ( const eventId of validEventIds ) {
+            $('#mdoe-select').append(`<option value="${eventId}">${eventTitles[eventId]}</option>`);
             }
 
         dialogForm.dialog( "open" );
