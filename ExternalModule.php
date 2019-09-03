@@ -61,7 +61,6 @@ class ExternalModule extends AbstractExternalModule {
         $record_id = $record_id ?: ( ($this->framework->getRecordId()) ?: NULL ); // return in place of NULL causes errors
         $project_id = $project_id ?: ( ($this->framework->getProjectId()) ?: NULL );
 
-
         //TODO: sanitize without mysqli_real_escape_string
         $sql = "SELECT a.field_name FROM redcap_metadata as a
             INNER JOIN (SELECT form_name FROM redcap_events_forms WHERE event_id = " . ($source_event_id) .  ")
@@ -145,20 +144,22 @@ class ExternalModule extends AbstractExternalModule {
 
         if ($revisit_fields != []) {
             // Raw SQL to transfer docs which do not transfer or delete with saveData
+            $first_field_name = array_shift($revisit_fields);
+            $log_message .= ". Forced transfer of additional field(s): " . $first_field_name;
             $docs_xfer_sql = "UPDATE redcap_data SET event_id = " . $target_event_id . "
                 WHERE project_id = " . $project_id . "
                 AND event_id = " . $source_event_id . "
                 AND record = " . $record_id . "
-                AND field_name = '" . array_shift($revisit_fields) . "'";
+                AND field_name = '" . $first_field_name . "'";
 
             foreach($revisit_fields as $field_name) {
                 $docs_xfer_sql .= " OR field_name = '" . $field_name . "'";
+                $log_message .= ", " . $field_name;
             }
 
             $docs_xfer_sql .= ";";
 
             $this->framework->query($docs_xfer_sql);
-            $log_message .= ". Forced transfer of additional fields";
         }
         return $log_message;
     }
