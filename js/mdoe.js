@@ -13,12 +13,17 @@ document.addEventListener('DOMContentLoaded', function() {
     var links;
 
     var eventColumns = $('.evGridHdr');
-    var formLinks = $('#event_grid_table').children('tbody').find('a');
+    const dataRows = $('#event_grid_table tbody tr');
+    var formLinks = dataRows.find('a');
 
     let eventTitles = {}; // event_id : title name
-    eventColumns.toArray().forEach( element => eventTitles[element.children[1].className.split('evGridHdrInstance-')[1].split(' ', 1)[0] ] = element.children[0].textContent);
+    eventColumns.toArray().forEach(
+        element =>
+            eventTitles[element.children[1].className.split('evGridHdrInstance-')[1].split(' ', 1)[0] ] = element.children[0].textContent
+    );
 
     $.each(eventColumns, function(i, eventColumn) { 
+    console.log(this);
             // $element.appendTo(dialogButton); does not work, only appears on last element
             eDialogButton.clone().appendTo(eventColumn);
             });
@@ -39,13 +44,44 @@ document.addEventListener('DOMContentLoaded', function() {
     // actions for event movement
     $( ".mdoe-event" ).on( "click", function() {
         const colIndex = $(this).parent().index();
+        let otherCols = {...eventColumns};
+        delete otherCols[colIndex-1]; // remove instrument name column
         const sourceEventId = $(this).prev()[0]
             .className.split('evGridHdrInstance-')[1].split(' ', 1)[0];
 
-        let titles = {...eventTitles}; // deep copy
-        delete titles[sourceEventId]; // Exclude current event
+        let selectedColValues = dataRows.find(`td:nth-child(${colIndex+1})`);
+        let selectedFilledCells = {};
+        $.each(selectedColValues, function(cellNum) {
+            try {
+                const im = $(this).find('a')[0].firstChild.src;
+                if (im.length !== 0) {
+                    selectedFilledCells[cellNum] = im;
+                }
+            } catch(e) {
+                // ignore empty cells
+                // console.log(e);
+            }
+            });
 
-        //TODO: prune down titles to only those with the same forms AND they are empty
+        let validEventIds = [];
+        $.each(otherCols, function(cellNum, col) {
+            let thisColValues = dataRows.find(`td:nth-child(${$(this).index()+1})`);
+
+            // only check forms for which the source event has entries
+            for (let [rowNum, imSrc] of Object.entries(selectedFilledCells)) {
+                try {
+                    const targCell = $(thisColValues[rowNum]).find('a');
+                    if ( !targCell[0].firstChild.src.endsWith('circle_gray.png') ) {
+                            return;
+                        }
+                    } catch(e) {
+                        return;
+                    }
+                }
+            // TODO: store eventIds in eventColumns
+            const thisEventId = $(this).find('.evGridHdrInstance')[0].className.split('evGridHdrInstance-')[1].split(' ', 1)[0];
+            validEventIds.push(thisEventId);
+            });
 
         let dialogEvent = $( "#dialog-mdoe" ).dialog({
           buttons: {
@@ -60,15 +96,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         $(dialogEvent).find('option').remove();
-        for ( let [id,title] of Object.entries(titles) ) {
-            $('#mdoe-select').append(`<option value="${id}">${title}</option>`);
+        for ( const eventId of validEventIds ) {
+            $('#mdoe-select').append(`<option value="${eventId}">${eventTitles[eventId]}</option>`);
             }
 
-        let thisColValues = $( `#event_grid_table tbody tr td:nth-child(${colIndex+1})` );
-        thisColValues.css("background-color", "#ff9933");
+        selectedColValues.css("background-color", "#ff9933");
 
         dialogEvent
-            .on('dialogclose', function(event) { thisColValues.css("background-color", ""); })
+            .on('dialogclose', function(event) { selectedColValues.css("background-color", ""); })
             .dialog( "open" );
     });
 
