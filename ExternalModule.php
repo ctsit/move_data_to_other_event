@@ -67,8 +67,8 @@ class ExternalModule extends AbstractExternalModule {
             INNER JOIN (SELECT form_name FROM redcap_events_forms WHERE event_id = " . ($source_event_id) .  ")
             as b ON a.form_name = b.form_name
             WHERE a.project_id = " . ($project_id) . "
-            AND a.form_name = '" . ($form_name) . "
-            ORDER BY field_order ASC';";
+            AND a.form_name = '" . ($form_name) . "'
+            ORDER BY field_order ASC;";
 
         $fields = [];
         $result= $this->framework->query($sql);
