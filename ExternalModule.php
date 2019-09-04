@@ -144,12 +144,14 @@ class ExternalModule extends AbstractExternalModule {
 
         if ($revisit_fields != []) {
             // Raw SQL to transfer docs which do not transfer or delete with saveData
+            // excluding the record's primary key
             $first_field_name = array_shift($revisit_fields);
             $log_message .= ". Forced transfer of additional field(s): " . $first_field_name;
             $docs_xfer_sql = "UPDATE redcap_data SET event_id = " . $target_event_id . "
                 WHERE project_id = " . $project_id . "
                 AND event_id = " . $source_event_id . "
                 AND record = " . $record_id . "
+                AND field_name NOT IN ('" . REDCap::getRecordIdField() . "')
                 AND field_name = '" . $first_field_name . "'";
 
             foreach($revisit_fields as $field_name) {
