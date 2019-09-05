@@ -37,21 +37,31 @@ class ExternalModule extends AbstractExternalModule {
             'events' => $source_event_id
         ];
 
-        // get record for selected event, swap source_event_id for target_event_id
-        $data = REDCap::getData($get_data);
-        $data[$record_id][$target_event_id] = $data[$record_id][$source_event_id];
-        unset($data[$record_id][$source_event_id]);
+        $new_data = [];
 
-        $response = REDCap::saveData($project_id, 'array', $data, 'normal');
+        // get record for selected event, swap source_event_id for target_event_id
+        $old_data = REDCap::getData($get_data);
+        $new_data[$record_id][$target_event_id] = $old_data[$record_id][$source_event_id];
+
+        $response = REDCap::saveData($project_id, 'array', $new_data, 'normal');
         $log_message = "Migrated " . $form_name . " from event " . $source_event_id . " to " . $target_event_id;
 
+        // soft delete all data for each field
+        array_walk_recursive($old_data[$record_id][$source_event_id], function(&$value, $key) {
+                $value = NULL;
+                }
+                );
+
+        $old_data[$record_id][$source_event_id][REDCap::getRecordIdField()] = $record_id;
+
+        $delete_response = REDCap::saveData($project_id, 'array', $old_data, 'overwrite');
 
         $log_message = $this->forceMigrateSourceFields($get_data, $project_id, $record_id, $source_event_id, $target_event_id, $log_message);
 
         REDCap::logEvent("Moved all from an event to a different event", $log_message);
 
         // TODO: parse response, use as flag for deletion
-        return json_encode($response);
+        return json_encode($delete_response);
 
         // Event data is deleted via call to core JS function, deleteEventInstance which wraps \Controller\DataEntryController
         // requires POST and GET data from the record_home page
@@ -119,7 +129,7 @@ class ExternalModule extends AbstractExternalModule {
         $response = REDCap::saveData($project_id, 'array', $data, 'normal');
         // TODO: parse response, use as flag for toggling deletion
 
-        $d = REDCap::saveData($project_id, 'array', $deletion_data, 'overwrite'); // handle deletion via backend
+        $delete_response = REDCap::saveData($project_id, 'array', $deletion_data, 'overwrite'); // handle deletion via backend
         $this->framework->log("Migrated " . $form_name . " from event " . $source_event_id . " to " . $target_event_id); // Does not show up in activity log
 
         $log_message = "Migrated " . $form_name . " from event " . $source_event_id . " to " . $target_event_id;
@@ -128,7 +138,7 @@ class ExternalModule extends AbstractExternalModule {
         $log_message = $this->forceMigrateSourceFields($get_data, $project_id, $record_id, $source_event_id, $target_event_id, $log_message);
 
         REDCap::logEvent("Moved data from a single form to a different event", $log_message);
-        return json_encode($d);
+        return json_encode($delete_response);
     }
 
     function forceMigrateSourceFields($get_data, $project_id, $record_id, $source_event_id, $target_event_id, $log_message) {
@@ -137,31 +147,23 @@ class ExternalModule extends AbstractExternalModule {
         // check for fields which did not transfer
         $revisit_fields = [];
         foreach ($check_old as $field => $value) {
-            if ($value) {
-                $revisit_fields[] = $field;
+            if ($value !== '' && $value !== '0' && $value !== NULL && $field != REDCap::getRecordIdField()) {
+		        array_push($revisit_fields, "'$field'");
             }
         }
 
-        if ($revisit_fields != []) {
-            // Raw SQL to transfer docs which do not transfer or delete with saveData
-            // excluding the record's primary key
-            $first_field_name = array_shift($revisit_fields);
-            $log_message .= ". Forced transfer of additional field(s): " . $first_field_name;
-            $docs_xfer_sql = "UPDATE redcap_data SET event_id = " . $target_event_id . "
-                WHERE project_id = " . $project_id . "
-                AND event_id = " . $source_event_id . "
-                AND record = " . $record_id . "
-                AND field_name NOT IN ('" . REDCap::getRecordIdField() . "')
-                AND field_name = '" . $first_field_name . "'";
-
-            foreach($revisit_fields as $field_name) {
-                $docs_xfer_sql .= " OR field_name = '" . $field_name . "'";
-                $log_message .= ", " . $field_name;
-            }
-
-            $docs_xfer_sql .= ";";
-
-            $this->framework->query($docs_xfer_sql);
+         if ($revisit_fields !== [])  {
+             // Raw SQL to transfer docs which do not transfer or delete with saveData
+             // explicitly excluding the record's primary key
+             $revisit_fields = implode(',', $revisit_fields);
+             $log_message .= ". Forced transfer of additional field(s): " . $revisit_fields;
+             $docs_xfer_sql = "UPDATE redcap_data SET event_id = " . $target_event_id . "
+                 WHERE project_id = " . $project_id . "
+                 AND event_id = " . $source_event_id . "
+                 AND record = " . $record_id . "
+                 AND field_name NOT IN ('" . REDCap::getRecordIdField() . "')
+                 AND field_name IN (" . $revisit_fields . ");";
+             $this->framework->query($docs_xfer_sql);
         }
         return $log_message;
     }
