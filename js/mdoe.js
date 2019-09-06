@@ -23,7 +23,6 @@ document.addEventListener('DOMContentLoaded', function() {
     );
 
     $.each(eventColumns, function(i, eventColumn) { 
-    console.log(this);
             // $element.appendTo(dialogButton); does not work, only appears on last element
             eDialogButton.clone().appendTo(eventColumn);
             });
@@ -51,17 +50,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let selectedColValues = dataRows.find(`td:nth-child(${colIndex+1})`);
         let selectedFilledCells = {};
+        let formNames = [];
         $.each(selectedColValues, function(cellNum) {
             try {
-                const im = $(this).find('a')[0].firstChild.src;
-                if (im.length !== 0) {
-                    selectedFilledCells[cellNum] = im;
+                const im = $(this).find('a')[0];
+                if (im.firstChild.src.length !== 0) {
+                    selectedFilledCells[cellNum] = im.firstChild.src;
+                    if (!selectedFilledCells[cellNum].endsWith('circle_gray.png')) {
+                        const params = new URLSearchParams(im.href);
+                        formNames.push( params.get('page') );
+                    }
                 }
             } catch(e) {
                 // ignore empty cells
                 // console.log(e);
             }
             });
+
+        console.log(formNames);
+        console.log(selectedFilledCells);
 
         let validEventIds = [];
         $.each(otherCols, function(cellNum, col) {
@@ -87,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
           buttons: {
             "Migrate Event Data": function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
-                ajaxMoveEvent(sourceEventId, targetEventId);
+                ajaxMoveEvent(sourceEventId, targetEventId, formNames);
             },
             Cancel: function() {
               $(this).dialog( "close" );
@@ -109,7 +116,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // actions for form movement
     $( ".mdoe-form" ).on( "click", function() {
-
         const params = new URLSearchParams($(this).next().attr('href'));
 
         // TODO: use this to exclude cells containing anything other than grey icons
@@ -140,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
             "Migrate Form Data": function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
                 console.log(targetEventId);
-                ajaxMoveForm(params.get('event_id'), targetEventId, params.get('page'));
+                ajaxMoveEvent(params.get('event_id'), targetEventId, [params.get('page')]);
                 // TODO: check that previous worked before deleting
             },
             Cancel: function() {
@@ -160,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-function ajaxMoveEvent(sourceEventId, targetEventId) {
+function ajaxMoveEvent(sourceEventId, targetEventId, formNames = null, deleteEvent = false) {
     const searchParams = new URLSearchParams(window.location.search);
 
     $.get({
@@ -169,6 +175,7 @@ function ajaxMoveEvent(sourceEventId, targetEventId) {
                 migrating: 'event',
                 sourceEventId: sourceEventId,
                 targetEventId: targetEventId,
+                formNames: formNames,
                 recordId: searchParams.get('id'),
                 projectId: searchParams.get('pid')
               },
@@ -178,32 +185,11 @@ function ajaxMoveEvent(sourceEventId, targetEventId) {
                 // TODO: parse and report errors
                 return 0;
             }
-            doDeleteEventInstance(sourceEventId); // reloads page on completion
-            });
-}
-
-function ajaxMoveForm(sourceEventId, targetEventId, formName) {
-    const searchParams = new URLSearchParams(window.location.search);
-
-    $.get({
-        url: ajaxpage,
-        data: {
-                migrating: 'form',
-                formName: formName,
-                sourceEventId: sourceEventId,
-                targetEventId: targetEventId,
-                recordId: searchParams.get('id'),
-                projectId: searchParams.get('pid')
-              },
-        })
-    .done(function(data) {
             console.log(data);
-            if (data.errors) {
-                // TODO: parse and report errors
-                return 0;
+            if (deleteEvent) {
+                doDeleteEventInstance(sourceEventId); // reloads page on completion
+            } else {
+                location.reload();
             }
-            location.reload();
-            //TODO: delete only the contents of this form
-            //doDeleteEventInstance(sourceEventId); // reloads page on completion
-            });
+        });
 }

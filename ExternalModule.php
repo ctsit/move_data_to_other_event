@@ -25,58 +25,18 @@ class ExternalModule extends AbstractExternalModule {
         echo '<script src="' . $this->getUrl($path) . '">;</script>';
     }
 
-    function moveEvent($source_event_id, $target_event_id, $record_id = NULL, $project_id = NULL) {
+    function moveEvent($source_event_id, $target_event_id, $record_id = NULL, $project_id = NULL, $form_names = NULL) {
         $record_id = $record_id ?: ( ($this->framework->getRecordId()) ?: NULL ); // return in place of NULL causes errors
         $project_id = $project_id ?: ( ($this->framework->getProjectId()) ?: NULL );
-
-        $get_data = [
-            'project_id' => $project_id,
-            'return_format' => 'array',
-            'records' => $record_id,
-            'fields' => NULL,
-            'events' => $source_event_id
-        ];
-
-        $new_data = [];
-
-        // get record for selected event, swap source_event_id for target_event_id
-        $old_data = REDCap::getData($get_data);
-        $new_data[$record_id][$target_event_id] = $old_data[$record_id][$source_event_id];
-
-        $response = REDCap::saveData($project_id, 'array', $new_data, 'normal');
-        $log_message = "Migrated " . $form_name . " from event " . $source_event_id . " to " . $target_event_id;
-
-        // soft delete all data for each field
-        array_walk_recursive($old_data[$record_id][$source_event_id], function(&$value, $key) {
-                $value = NULL;
-                }
-                );
-
-        $old_data[$record_id][$source_event_id][REDCap::getRecordIdField()] = $record_id;
-
-        $delete_response = REDCap::saveData($project_id, 'array', $old_data, 'overwrite');
-
-        $log_message = $this->forceMigrateSourceFields($get_data, $project_id, $record_id, $source_event_id, $target_event_id, $log_message);
-
-        REDCap::logEvent("Moved all from an event to a different event", $log_message);
-
-        // TODO: parse response, use as flag for deletion
-        return json_encode($delete_response);
-
-        // Event data is deleted via call to core JS function, deleteEventInstance which wraps \Controller\DataEntryController
-        // requires POST and GET data from the record_home page
-    }
-
-    function moveForm($source_event_id, $target_event_id, $record_id = NULL, $project_id = NULL, $form_name = NULL, $debug = false) {
-        $record_id = $record_id ?: ( ($this->framework->getRecordId()) ?: NULL ); // return in place of NULL causes errors
-        $project_id = $project_id ?: ( ($this->framework->getProjectId()) ?: NULL );
+        $record_pk = REDCap::getRecordIdField();
+        $form_names = implode("', '", $form_names);
 
         //TODO: sanitize without mysqli_real_escape_string
         $sql = "SELECT a.field_name FROM redcap_metadata as a
             INNER JOIN (SELECT form_name FROM redcap_events_forms WHERE event_id = " . ($source_event_id) .  ")
             as b ON a.form_name = b.form_name
             WHERE a.project_id = " . ($project_id) . "
-            AND a.form_name = '" . ($form_name) . "'
+            AND a.form_name IN ('" . $form_names . "')
             ORDER BY field_order ASC;";
 
         $fields = [];
@@ -89,56 +49,40 @@ class ExternalModule extends AbstractExternalModule {
         $get_data = [
             'project_id' => $project_id,
             'return_format' => 'array',
-            //'return_format' => 'json',
             'records' => $record_id,
             'fields' => $fields,
             'events' => $source_event_id
         ];
 
-        $data = REDCap::getData($get_data);
+        $new_data = [];
 
         // get record for selected event, swap source_event_id for target_event_id
-        $deletion_data = $data;
-        $data[$record_id][$target_event_id] = $data[$record_id][$source_event_id];
-        unset($data[$record_id][$source_event_id]);
+        $old_data = REDCap::getData($get_data);
+        $new_data[$record_id][$target_event_id] = $old_data[$record_id][$source_event_id];
 
-        // Backfill null as a "deletion" of data for a single form
-        foreach ($fields as $field) {
-            $deletion_data[$record_id][$source_event_id][$field] = NULL;
-        }
+        $response = REDCap::saveData($project_id, 'array', $new_data, 'normal');
+        $log_message = "Migrated form(s) " . $form_names . " from event " . $source_event_id . " to " . $target_event_id;
 
-        if ($debug) {
-            print_r("<pre>");
-            print_r($source_event_id);
-            print_r("\n");
-            print_r($sql);
-            print_r("\nResults:\n ");
-            var_dump($result);
-            print_r("\nResults all:\n ");
-            var_dump($result->fetch_all());
-            print_r("\nFields:\n ");
-            var_dump($fields);
-            print_r("\nData:\n ");
-            var_dump($data);
-            print_r("\nDeletion data:\n ");
-            var_dump($deletion_data);
-            print_r("</pre>");
-            return;
-        }
+        // soft delete all data for each field
+        // document fields do not migrate or soft delete via saveData
+        array_walk_recursive($old_data[$record_id][$source_event_id], function(&$value, $key) {
+                if ($key !== $record_pk) {
+                    $value = NULL;
+                }
+            }
+        );
 
-        $response = REDCap::saveData($project_id, 'array', $data, 'normal');
-        // TODO: parse response, use as flag for toggling deletion
-
-        $delete_response = REDCap::saveData($project_id, 'array', $deletion_data, 'overwrite'); // handle deletion via backend
-        $this->framework->log("Migrated " . $form_name . " from event " . $source_event_id . " to " . $target_event_id); // Does not show up in activity log
-
-        $log_message = "Migrated " . $form_name . " from event " . $source_event_id . " to " . $target_event_id;
-
+        $delete_response = REDCap::saveData($project_id, 'array', $old_data, 'overwrite');
 
         $log_message = $this->forceMigrateSourceFields($get_data, $project_id, $record_id, $source_event_id, $target_event_id, $log_message);
 
-        REDCap::logEvent("Moved data from a single form to a different event", $log_message);
+        REDCap::logEvent("Moved data from an event to a different event", $log_message);
+
+        // TODO: parse response, use as flag for deletion
         return json_encode($delete_response);
+
+        // if moving an entire event, event data is deleted via call to core JS function, deleteEventInstance which wraps \Controller\DataEntryController
+        // requires POST and GET data from the record_home page
     }
 
     function forceMigrateSourceFields($get_data, $project_id, $record_id, $source_event_id, $target_event_id, $log_message) {
@@ -147,7 +91,8 @@ class ExternalModule extends AbstractExternalModule {
         // check for fields which did not transfer
         $revisit_fields = [];
         foreach ($check_old as $field => $value) {
-            if ($value !== '' && $value !== '0' && $value !== NULL && $field != REDCap::getRecordIdField()) {
+            if ($value !== '' && $value !== '0' && $value !== NULL &&
+                $field != REDCap::getRecordIdField()) {
 		        array_push($revisit_fields, "'$field'");
             }
         }

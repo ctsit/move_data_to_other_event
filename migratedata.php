@@ -4,7 +4,7 @@ namespace MDOE\ExternalModule;
 require_once(__DIR__ . '/ExternalModule.php');
 
 $migrating = $_REQUEST["migrating"];
-$form_name = $_REQUEST["formName"];
+$form_names = $_REQUEST["formNames"];
 $source_event_id = $_REQUEST["sourceEventId"];
 $target_event_id = $_REQUEST["targetEventId"];
 $record_id = $_REQUEST["recordId"];
@@ -14,10 +14,7 @@ $EM = new ExternalModule();
 
 switch ($migrating) {
     case 'event':
-        $response = $EM->moveEvent($source_event_id, $target_event_id, $record_id, $project_id);
-        break;
-    case 'form':
-        $response = $EM->moveForm($source_event_id, $target_event_id, $record_id, $project_id, $form_name, $debug = false);
+        $response = $EM->moveEvent($source_event_id, $target_event_id, $record_id, $project_id, $form_names);
         break;
     case 'field':
         echo "not implemented";
