@@ -9,12 +9,22 @@ class ExternalModule extends AbstractExternalModule {
 
     function redcap_every_page_top($project_id) {
 
-        if (PAGE != 'DataEntry/record_home.php' || !$_REQUEST['id']) return;
-        // __DIR__ . '/migratedataphp'; does not work due to VM symlink(?)
-        $ajax_page = json_encode($this->framework->getUrl("migratedata.php"));
+        $project_settings = $this->framework->getProjectSettings();
 
-        $form = 'participant_morale_questionnaire';
-        //$this->moveForm(127, 126, 1, 22, $form, true);
+        if (!$project_settings['active']['value']) {
+            return;
+        }
+
+        if ( !$this->framework->getUser()->hasDesignRights() &&
+                ( $this->getSystemSetting('restrict_to_designers_global') ||
+                  !$project_settings['allow_non_designers']['value']) )
+        {
+            return;
+        }
+
+        if (PAGE != 'DataEntry/record_home.php' || !$_REQUEST['id']) return;
+        // __DIR__ . '/migratedata.php'; does not work due to VM symlink(?)
+        $ajax_page = json_encode($this->framework->getUrl("migratedata.php"));
 
         echo ("<script> var ajaxpage = {$ajax_page}; </script>");
         include('div.html');
