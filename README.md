@@ -28,10 +28,12 @@ Once enabled, on the Record Home Page for any given record a series of moving tr
 Moving truck icons will appear at the top of all events and beside any form which contains data (i.e. a non-gray circle icon).  
 ![sample_icons](img/sample_project_icons.png)
 
-Upon clicking an icon, a menu will appear allowing you to select valid events to migrate data to. Migrations are only allowed to events where no data is contained in the forms to be moved.  
-![sample_event_migration](img/sample_event_migration.png)
+Upon clicking an icon, a menu will appear allowing you to select valid events to migrate data to and the form cell or event column you are attempting to migrate will be highlighted. Migrations are only allowed to events where no data is contained in the forms to be moved.  
 
 Clicking a moving truck next to a form will allow migration to the same form on another event provided the target form does not contain any data.  
-Clicking a moving truck in the event titles row will allow migration to other events, provided all forms in the source event are present in the target event **and** are unfilled.
+![sample_event_migration](img/sample_event_migration.png)
+
+Clicking a moving truck in the event titles row will allow migration to other events, provided all forms in the source event are present in the target event **and** are unfilled.  
+![sample_form_migration](img/sample_form_migration.png)
 
 Moving truck icons may be presented on forms or events which have no valid targets, in this case they will still be clickable but the dropdown menu will be empty.
