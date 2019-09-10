@@ -117,6 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // actions for form movement
     $( ".mdoe-form" ).on( "click", function() {
         const params = new URLSearchParams($(this).next().attr('href'));
+        const thisCell = $(this).parent();
 
         // TODO: use this to exclude cells containing anything other than grey icons
         const rowSiblings = $(this).parent().siblings();
@@ -161,7 +162,12 @@ document.addEventListener('DOMContentLoaded', function() {
             $('#mdoe-select').append(`<option value="${eventId}">${eventTitles[eventId]}</option>`);
             }
 
-        dialogForm.dialog( "open" );
+        //highlight cell of source form
+        thisCell.css("background-color", "#ff9933");
+
+        dialogForm
+            .on('dialogclose', function(event) { thisCell.css("background-color", ""); })
+            .dialog( "open" );
     });
 
 });
