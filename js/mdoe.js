@@ -67,9 +67,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             });
 
-        console.log(formNames);
-        console.log(selectedFilledCells);
-
         let validEventIds = [];
         $.each(otherCols, function(cellNum, col) {
             let thisColValues = dataRows.find(`td:nth-child(${$(this).index()+1})`);
@@ -94,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
           buttons: {
             "Migrate Event Data": function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
-                ajaxMoveEvent(sourceEventId, targetEventId, formNames);
+                ajaxMoveEvent(sourceEventId, targetEventId, formNames, true);
             },
             Cancel: function() {
               $(this).dialog( "close" );
@@ -146,7 +143,6 @@ document.addEventListener('DOMContentLoaded', function() {
           buttons: {
             "Migrate Form Data": function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
-                console.log(targetEventId);
                 ajaxMoveEvent(params.get('event_id'), targetEventId, [params.get('page')]);
                 // TODO: check that previous worked before deleting
             },
