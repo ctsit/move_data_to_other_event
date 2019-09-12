@@ -20,7 +20,7 @@ Once enabled, on the Record Home Page for any given record a series of moving tr
 
 ## Project Configuration
 
-- **Activate for use**: The module may be rendered active via checkbox (this has the same effect as disabling the module).
+- **Activate for use**: The module may be rendered active via checkbox (this has the same effect as disabling the module, but allows designers to toggle).
 - **Allow non-designers to see and use this module**: You may allow non-designers to see and use the module on a per-project basis. The global configuration **Restrict use to designers globally** _will override this option if it is selected_; administrators have the final say in who may use this module.
 
 ## Use
