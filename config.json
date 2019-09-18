@@ -1,6 +1,6 @@
 {
     "name": "Move Data to Other Event",
-    "description": "Move data from fields, forms, or events to other events",
+    "description": "Allow privileged users to easily move data, uploaded files, and signatures between events.",
     "namespace": "MDOE\\ExternalModule",
     "framework-version": 3,
     "permissions": [
