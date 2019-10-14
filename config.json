@@ -1,6 +1,6 @@
 {
     "name": "Move Data to Other Event",
-    "description": "Move data from fields, forms, or events to other events",
+    "description": "Allow privileged users to easily move data, uploaded files, and signatures between events.",
     "namespace": "MDOE\\ExternalModule",
     "framework-version": 3,
     "permissions": [
@@ -9,8 +9,23 @@
     ],
     "authors": [
         {
-            "name": "Kyle Chesey",
+            "name": "Kyle Chesney",
             "email": "kyle.chesney@ufl.edu",
+            "institution": "University of Florida - CTSI"
+        },
+        {
+            "name": "Taryn Stoffs",
+            "email": "tls@ufl.edu",
+            "institution": "University of Florida - CTSI"
+        },
+        {
+            "name": "Marly Cormar",
+            "email": "marlycormar@ufl.edu",
+            "institution": "University of Florida - CTSI"
+        },
+        {
+            "name": "Philip Chase",
+            "email": "pbc@ufl.edu",
             "institution": "University of Florida - CTSI"
         }
     ],
