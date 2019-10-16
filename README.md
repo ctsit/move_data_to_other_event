@@ -15,6 +15,10 @@ A REDCap module that allows privileged users to easily move data, uploaded files
 
 When enabled, this module adds a set of controls to the Record Home Page to allow entire forms or entire events of data to be moved to another event. The controls appear on the Record Home Page as truck icons next to a form and beneath each event name. Clicking on a truck will present a menu of valid target events for the form or event selected.
 
+## Limitations
+
+This module does not currently support repeating events. If you do use this module with a project that uses repeating events, although truck icons will appear in repeat events and repeat events will appear as valid targets for data migration, you should not attempt to migrate any data to or from a repeating event, _even if it is the only instance of this event_. **Ignoring this warning may result in a loss of data**.
+
 ## Global Configuration
 
 - **Restrict use to designers globally**: Access may be limited globally to users with project design rights. By default, this module is **not** visible to all users. A related option in the project-level configuration can grant access to non-designers to a specific project.
