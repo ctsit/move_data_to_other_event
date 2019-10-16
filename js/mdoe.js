@@ -1,4 +1,4 @@
-let dialogButton = $( '<i class="fas fa-truck" type="image" style="padding: 5px;"/>' );
+let dialogButton = $( '<i class="fas fa-truck" type="image" style="padding: 5px; cursor: pointer;"/>' );
 $( "#dialog-mdoe" ).dialog({
           autoOpen: false,
           draggable: true,
