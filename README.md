@@ -6,7 +6,7 @@ A REDCap module that allows privileged users to easily move data, uploaded files
  - REDCap >= 9.3.0
 
 ## Easy installation
-- Install the _Move Data to Other Event_ module from the Consortium [REDCap Repo] (https://redcap.vanderbilt.edu/consortium/modules/index.php) from the Control Center.
+- Install the _Move Data to Other Event_ module from the Consortium [REDCap Repo](https://redcap.vanderbilt.edu/consortium/modules/index.php) from the Control Center.
 
 ## Manual Installation
 - Clone this repo into to `<redcap-root>/modules/move_data_to_other_event_v0.0.0`.
@@ -14,6 +14,10 @@ A REDCap module that allows privileged users to easily move data, uploaded files
 ## Introduction
 
 When enabled, this module adds a set of controls to the Record Home Page to allow entire forms or entire events of data to be moved to another event. The controls appear on the Record Home Page as truck icons next to a form and beneath each event name. Clicking on a truck will present a menu of valid target events for the form or event selected.
+
+## Limitations
+
+This module does not currently support repeating events. If you do use this module with a project that uses repeating events, be aware that although truck icons will appear in repeat events and repeat events will appear as valid targets for data migration, you should not attempt to migrate any data to or from a repeating event, _even if it is the first or only instance of a repeating event_. **Ignoring this warning may result in a loss of data**.
 
 ## Global Configuration
 
