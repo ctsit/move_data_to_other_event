@@ -17,10 +17,13 @@ document.addEventListener('DOMContentLoaded', function() {
     var formLinks = dataRows.find('a');
 
     let eventTitles = {}; // event_id : title name
-    eventColumns.toArray().forEach(
-        element =>
-            eventTitles[element.children[1].className.split('evGridHdrInstance-')[1].split(' ', 1)[0] ] = element.children[0].textContent
-    );
+    eventColumns.each(function() {
+        $evGridHdr = $(this).find('.evGridHdrInstance');
+        eventId = $evGridHdr[0].className.split('evGridHdrInstance-')[1].split(' ', 1)[0];
+        eventTitle = $(this).find('.evTitle').text();
+
+        eventTitles[eventId] = eventTitle;
+    });
 
     $.each(eventColumns, function(i, eventColumn) { 
             // $element.appendTo(dialogButton); does not work, only appears on last element
