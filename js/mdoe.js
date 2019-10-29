@@ -87,7 +87,9 @@ document.addEventListener('DOMContentLoaded', function() {
             validEventIds.push(thisEventId);
             });
 
-        let dialogEvent = $( "#dialog-mdoe" ).dialog({
+        let dialogEvent = $( "#dialog-mdoe" ).clone();
+        $(dialogEvent).attr('title', 'Moving Entire Event Data');
+        $(dialogEvent).dialog({
           buttons: {
             "Migrate Event Data": function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
@@ -95,14 +97,22 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             Cancel: function() {
               $(this).dialog( "close" );
+              $(this).remove();
             }
           },
         });
 
-        $(dialogEvent).find('option').remove();
-        for ( const eventId of validEventIds ) {
-            $('#mdoe-select').append(`<option value="${eventId}">${eventTitles[eventId]}</option>`);
+        $(dialogEvent).find('#mdoe-select').empty();
+        if (validEventIds.length > 0) {
+            $(dialogEvent).prepend(`Moving data from ${eventTitles[sourceEventId]}`);
+            dialogDropdown = $(dialogEvent).find('#mdoe-select');
+            for ( const eventId of validEventIds ) {
+                $(dialogDropdown).append(`<option value="${eventId}">${eventTitles[eventId]}</option>`);
             }
+        } else {
+            $(dialogEvent).text(`Sorry, there are no viable target events for ${eventTitles[sourceEventId]}`);
+            $(dialogEvent).parent().find("button:contains(Migrate Event Data)").hide();
+        }
 
         selectedColValues.css("background-color", "#ff9933");
 
@@ -139,7 +149,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        let dialogForm = $( "#dialog-mdoe" ).dialog({
+        let dialogForm = $( "#dialog-mdoe" ).clone();
+        $(dialogForm).attr('title', 'Moving Single Form Data');
+        dialogForm.dialog({
           buttons: {
             "Migrate Form Data": function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
@@ -148,15 +160,23 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             Cancel: function() {
               $(this).dialog( "close" );
+              $(this).remove();
             }
           },
         });
 
         // refresh selectable options
-        $(dialogForm).find('option').remove();
-        for ( const eventId of validEventIds ) {
-            $('#mdoe-select').append(`<option value="${eventId}">${eventTitles[eventId]}</option>`);
+        $(dialogForm).find('#mdoe-select').empty();
+        if (validEventIds.length > 0) {
+            $(dialogForm).prepend(`Moving data from ${eventTitles[params.get('event_id')]}`);
+            dialogDropdown = $(dialogForm).find('#mdoe-select');
+            for ( const eventId of validEventIds ) {
+                $(dialogDropdown).append(`<option value="${eventId}">${eventTitles[eventId]}</option>`);
             }
+        } else {
+            $(dialogForm).text('Sorry, there are no viable target events for this form');
+            $(dialogForm).parent().find("button:contains(Migrate Form Data)").hide();
+        }
 
         //highlight cell of source form
         thisCell.css("background-color", "#ff9933");
