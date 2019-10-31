@@ -96,8 +96,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
                 ajaxMoveEvent(sourceEventId, targetEventId, formNames, true);
             },
-            Cancel: function() {
-              $(this).dialog( "close" );
+            "Clone Event Data": function() {
+                const targetEventId = $(this).find('select').find(':selected').val();
+                ajaxMoveEvent(sourceEventId, targetEventId, formNames, false);
             }
           },
         });
@@ -146,11 +147,12 @@ document.addEventListener('DOMContentLoaded', function() {
           buttons: {
             "Migrate Form Data": function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
-                ajaxMoveEvent(params.get('event_id'), targetEventId, [params.get('page')]);
+                ajaxMoveEvent(params.get('event_id'), targetEventId, [params.get('page')], true);
                 // TODO: check that previous worked before deleting
             },
-            Cancel: function() {
-              $(this).dialog( "close" );
+            "Clone Form Data": function() {
+                const targetEventId = $(this).find('select').find(':selected').val();
+                ajaxMoveEvent(params.get('event_id'), targetEventId, [params.get('page')], false);
             }
           },
         });
@@ -171,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-function ajaxMoveEvent(sourceEventId, targetEventId, formNames = null, deleteEvent = false) {
+function ajaxMoveEvent(sourceEventId, targetEventId, formNames = null, deleteSourceData = false) {
     const searchParams = new URLSearchParams(window.location.search);
 
     $.get({
@@ -182,7 +184,8 @@ function ajaxMoveEvent(sourceEventId, targetEventId, formNames = null, deleteEve
                 targetEventId: targetEventId,
                 formNames: formNames,
                 recordId: searchParams.get('id'),
-                projectId: searchParams.get('pid')
+                projectId: searchParams.get('pid'),
+                deleteSourceData: deleteSourceData
               },
         })
     .done(function(data) {
@@ -190,11 +193,13 @@ function ajaxMoveEvent(sourceEventId, targetEventId, formNames = null, deleteEve
                 // TODO: parse and report errors
                 return 0;
             }
-            console.log(data);
-            if (deleteEvent) {
-                doDeleteEventInstance(sourceEventId); // reloads page on completion
-            } else {
-                location.reload();
-            }
+            location.reload();
+
+            // TODO: consider re-enabling this if targeting an event and the migration was successfull
+            //if (deleteSourceData /* && entireEvent */) {
+            //    doDeleteEventInstance(sourceEventId); // reloads page on completion
+            //} else {
+            //    location.reload();
+            //}
         });
 }
