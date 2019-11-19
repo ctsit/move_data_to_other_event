@@ -17,10 +17,13 @@ document.addEventListener('DOMContentLoaded', function() {
     var formLinks = dataRows.find('a');
 
     let eventTitles = {}; // event_id : title name
-    eventColumns.toArray().forEach(
-        element =>
-            eventTitles[element.children[1].className.split('evGridHdrInstance-')[1].split(' ', 1)[0] ] = element.children[0].textContent
-    );
+    eventColumns.each(function() {
+        $evGridHdr = $(this).find('.evGridHdrInstance');
+        eventId = $evGridHdr[0].className.split('evGridHdrInstance-')[1].split(' ', 1)[0];
+        eventTitle = $(this).find('.evTitle').text();
+
+        eventTitles[eventId] = eventTitle;
+    });
 
     $.each(eventColumns, function(i, eventColumn) { 
             // $element.appendTo(dialogButton); does not work, only appears on last element
@@ -95,9 +98,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
                 ajaxMoveEvent(sourceEventId, targetEventId, formNames, true);
             },
-            Cancel: function() {
-              $(this).dialog( "close" );
-              $(this).remove();
+            "Clone Event Data": function() {
+                const targetEventId = $(this).find('select').find(':selected').val();
+                ajaxMoveEvent(sourceEventId, targetEventId, formNames, false);
             }
           },
         });
@@ -111,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } else {
             $(dialogEvent).text(`Sorry, there are no viable target events for ${eventTitles[sourceEventId]}`);
-            $(dialogEvent).parent().find("button:contains(Migrate Event Data)").hide();
+            $(dialogEvent).parent().find(".ui-dialog-buttonpane").hide();
         }
 
         selectedColValues.css("background-color", "#ff9933");
@@ -155,12 +158,12 @@ document.addEventListener('DOMContentLoaded', function() {
           buttons: {
             "Migrate Form Data": function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
-                ajaxMoveEvent(params.get('event_id'), targetEventId, [params.get('page')]);
+                ajaxMoveEvent(params.get('event_id'), targetEventId, [params.get('page')], true);
                 // TODO: check that previous worked before deleting
             },
-            Cancel: function() {
-              $(this).dialog( "close" );
-              $(this).remove();
+            "Clone Form Data": function() {
+                const targetEventId = $(this).find('select').find(':selected').val();
+                ajaxMoveEvent(params.get('event_id'), targetEventId, [params.get('page')], false);
             }
           },
         });
@@ -175,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } else {
             $(dialogForm).text('Sorry, there are no viable target events for this form');
-            $(dialogForm).parent().find("button:contains(Migrate Form Data)").hide();
+            $(dialogForm).parent().find(".ui-dialog-buttonpane").hide();
         }
 
         //highlight cell of source form
@@ -188,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-function ajaxMoveEvent(sourceEventId, targetEventId, formNames = null, deleteEvent = false) {
+function ajaxMoveEvent(sourceEventId, targetEventId, formNames = null, deleteSourceData = false) {
     const searchParams = new URLSearchParams(window.location.search);
 
     $.get({
@@ -199,7 +202,8 @@ function ajaxMoveEvent(sourceEventId, targetEventId, formNames = null, deleteEve
                 targetEventId: targetEventId,
                 formNames: formNames,
                 recordId: searchParams.get('id'),
-                projectId: searchParams.get('pid')
+                projectId: searchParams.get('pid'),
+                deleteSourceData: deleteSourceData
               },
         })
     .done(function(data) {
@@ -207,11 +211,13 @@ function ajaxMoveEvent(sourceEventId, targetEventId, formNames = null, deleteEve
                 // TODO: parse and report errors
                 return 0;
             }
-            console.log(data);
-            if (deleteEvent) {
-                doDeleteEventInstance(sourceEventId); // reloads page on completion
-            } else {
-                location.reload();
-            }
+            location.reload();
+
+            // TODO: consider re-enabling this if targeting an event and the migration was successfull
+            //if (deleteSourceData /* && entireEvent */) {
+            //    doDeleteEventInstance(sourceEventId); // reloads page on completion
+            //} else {
+            //    location.reload();
+            //}
         });
 }
