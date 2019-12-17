@@ -102,7 +102,7 @@ class ExternalModule extends AbstractExternalModule {
             $log_message = "Migrated form(s) " . $form_names . " from event " . $source_event_id . " to " . $target_event_id;
 
             // soft delete all data for each field
-            array_walk_recursive($old_data[$record_id][$source_event_id], function(&$value, $key) {
+            array_walk_recursive($old_data[$record_id][$source_event_id], function(&$value, $key) use ($record_pk) {
                     if ($key !== $record_pk) {
                         $value = NULL;
                     }
