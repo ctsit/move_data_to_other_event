@@ -19,11 +19,6 @@
             "institution": "University of Florida - CTSI"
         },
         {
-            "name": "Marly Cormar",
-            "email": "marlycormar@ufl.edu",
-            "institution": "University of Florida - CTSI"
-        },
-        {
             "name": "Philip Chase",
             "email": "pbc@ufl.edu",
             "institution": "University of Florida - CTSI"
@@ -47,5 +42,8 @@
             "name": "Allow non-designers to see and use this module",
             "type": "checkbox"
         }
-    ]
+    ],
+    "compatibility": {
+        "redcap-version-min": "9.3.0"
+    }
 }

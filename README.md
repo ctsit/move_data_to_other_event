@@ -1,5 +1,7 @@
 # Move Data to Other Event
 
+[![DOI](https://zenodo.org/badge/204476967.svg)](https://zenodo.org/badge/latestdoi/204476967)
+
 A REDCap module that allows privileged users to easily move data, uploaded files, and signatures between events. The end user can move one subject's data at a time, moving either an entire event or a single form.
 
 ## Prerequisites
