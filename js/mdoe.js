@@ -1,4 +1,4 @@
-let dialogButton = $( '<i class="fas fa-truck" type="image" style="padding: 5px;"/>' );
+let dialogButton = $( '<i class="fas fa-truck" type="image" style="padding: 5px; cursor: pointer;"/>' );
 $( "#dialog-mdoe" ).dialog({
           autoOpen: false,
           draggable: true,
@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
             eDialogButton.clone().appendTo(eventColumn);
             });
 
-    $.each(formLinks.slice(1), function(i, link) {
+    $.each(formLinks, function(i, link) {
             try {
             const im = link.firstChild.src;
             // TODO: endsWith(array)
@@ -90,22 +90,32 @@ document.addEventListener('DOMContentLoaded', function() {
             validEventIds.push(thisEventId);
             });
 
-        let dialogEvent = $( "#dialog-mdoe" ).dialog({
+        let dialogEvent = $( "#dialog-mdoe" ).clone();
+        $(dialogEvent).attr('title', 'Moving Entire Event Data');
+        $(dialogEvent).dialog({
           buttons: {
             "Migrate Event Data": function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
                 ajaxMoveEvent(sourceEventId, targetEventId, formNames, true);
             },
-            Cancel: function() {
-              $(this).dialog( "close" );
+            "Clone Event Data": function() {
+                const targetEventId = $(this).find('select').find(':selected').val();
+                ajaxMoveEvent(sourceEventId, targetEventId, formNames, false);
             }
           },
         });
 
-        $(dialogEvent).find('option').remove();
-        for ( const eventId of validEventIds ) {
-            $('#mdoe-select').append(`<option value="${eventId}">${eventTitles[eventId]}</option>`);
+        $(dialogEvent).find('#mdoe-select').empty();
+        if (validEventIds.length > 0) {
+            $(dialogEvent).prepend(`Moving data from ${eventTitles[sourceEventId]}`);
+            dialogDropdown = $(dialogEvent).find('#mdoe-select');
+            for ( const eventId of validEventIds ) {
+                $(dialogDropdown).append(`<option value="${eventId}">${eventTitles[eventId]}</option>`);
             }
+        } else {
+            $(dialogEvent).text(`Sorry, there are no viable target events for ${eventTitles[sourceEventId]}`);
+            $(dialogEvent).parent().find(".ui-dialog-buttonpane").hide();
+        }
 
         selectedColValues.css("background-color", "#ff9933");
 
@@ -142,24 +152,34 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        let dialogForm = $( "#dialog-mdoe" ).dialog({
+        let dialogForm = $( "#dialog-mdoe" ).clone();
+        $(dialogForm).attr('title', 'Moving Single Form Data');
+        dialogForm.dialog({
           buttons: {
             "Migrate Form Data": function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
-                ajaxMoveEvent(params.get('event_id'), targetEventId, [params.get('page')]);
+                ajaxMoveEvent(params.get('event_id'), targetEventId, [params.get('page')], true);
                 // TODO: check that previous worked before deleting
             },
-            Cancel: function() {
-              $(this).dialog( "close" );
+            "Clone Form Data": function() {
+                const targetEventId = $(this).find('select').find(':selected').val();
+                ajaxMoveEvent(params.get('event_id'), targetEventId, [params.get('page')], false);
             }
           },
         });
 
         // refresh selectable options
-        $(dialogForm).find('option').remove();
-        for ( const eventId of validEventIds ) {
-            $('#mdoe-select').append(`<option value="${eventId}">${eventTitles[eventId]}</option>`);
+        $(dialogForm).find('#mdoe-select').empty();
+        if (validEventIds.length > 0) {
+            $(dialogForm).prepend(`Moving data from ${eventTitles[params.get('event_id')]}`);
+            dialogDropdown = $(dialogForm).find('#mdoe-select');
+            for ( const eventId of validEventIds ) {
+                $(dialogDropdown).append(`<option value="${eventId}">${eventTitles[eventId]}</option>`);
             }
+        } else {
+            $(dialogForm).text('Sorry, there are no viable target events for this form');
+            $(dialogForm).parent().find(".ui-dialog-buttonpane").hide();
+        }
 
         //highlight cell of source form
         thisCell.css("background-color", "#ff9933");
@@ -171,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-function ajaxMoveEvent(sourceEventId, targetEventId, formNames = null, deleteEvent = false) {
+function ajaxMoveEvent(sourceEventId, targetEventId, formNames = null, deleteSourceData = false) {
     const searchParams = new URLSearchParams(window.location.search);
 
     $.get({
@@ -182,7 +202,8 @@ function ajaxMoveEvent(sourceEventId, targetEventId, formNames = null, deleteEve
                 targetEventId: targetEventId,
                 formNames: formNames,
                 recordId: searchParams.get('id'),
-                projectId: searchParams.get('pid')
+                projectId: searchParams.get('pid'),
+                deleteSourceData: deleteSourceData
               },
         })
     .done(function(data) {
@@ -190,11 +211,13 @@ function ajaxMoveEvent(sourceEventId, targetEventId, formNames = null, deleteEve
                 // TODO: parse and report errors
                 return 0;
             }
-            console.log(data);
-            if (deleteEvent) {
-                doDeleteEventInstance(sourceEventId); // reloads page on completion
-            } else {
-                location.reload();
-            }
+            location.reload();
+
+            // TODO: consider re-enabling this if targeting an event and the migration was successfull
+            //if (deleteSourceData /* && entireEvent */) {
+            //    doDeleteEventInstance(sourceEventId); // reloads page on completion
+            //} else {
+            //    location.reload();
+            //}
         });
 }

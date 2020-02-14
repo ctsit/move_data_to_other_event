@@ -4,6 +4,7 @@ namespace MDOE\ExternalModule;
 
 use ExternalModules\AbstractExternalModule;
 use REDCap;
+use Files;
 
 class ExternalModule extends AbstractExternalModule {
 
@@ -35,7 +36,7 @@ class ExternalModule extends AbstractExternalModule {
         echo '<script src="' . $this->getUrl($path) . '">;</script>';
     }
 
-    function moveEvent($source_event_id, $target_event_id, $record_id = NULL, $project_id = NULL, $form_names = NULL) {
+    function moveEvent($source_event_id, $target_event_id, $record_id = NULL, $project_id = NULL, $form_names = NULL, $delete_source_data = true) {
         $record_id = $record_id ?: ( ($this->framework->getRecordId()) ?: NULL ); // return in place of NULL causes errors
         $project_id = $project_id ?: ( ($this->framework->getProjectId()) ?: NULL );
         $record_pk = REDCap::getRecordIdField();
@@ -64,27 +65,76 @@ class ExternalModule extends AbstractExternalModule {
             'events' => $source_event_id
         ];
 
+        $field_list = ($fields) ? " AND d.field_name IN ('" . implode('\',\'', $fields) . "');" : ";";
+        $edocs_sql = "SELECT d.field_name, em.doc_id, em.stored_name, em.doc_name
+            FROM redcap_data d
+        INNER JOIN redcap_metadata m
+            ON
+            m.project_id = d.project_id
+            AND m.field_name = d.field_name
+            AND m.element_type = 'file'
+        INNER JOIN redcap_edocs_metadata em
+            ON em.doc_id = d.value
+        WHERE
+            d.project_id = " . $project_id . "
+            AND d.record = " . $record_id . "
+            AND d.event_id = " . $source_event_id .
+            $field_list;
+
+        // TODO: consider: em.element_validation_type == 'signature'
+
+        $edocs_fields = $this->framework->query($edocs_sql);
+
+        $edocs_present = ($edocs_fields->num_rows > 0);
+        if ($edocs_present) {
+            $edocs_results = $edocs_fields->fetch_all(MYSQLI_ASSOC);
+        }
+
         $new_data = [];
 
         // get record for selected event, swap source_event_id for target_event_id
         $old_data = REDCap::getData($get_data);
         $new_data[$record_id][$target_event_id] = $old_data[$record_id][$source_event_id];
 
-        $response = REDCap::saveData($project_id, 'array', $new_data, 'normal');
-        $log_message = "Migrated form(s) " . $form_names . " from event " . $source_event_id . " to " . $target_event_id;
 
-        // soft delete all data for each field
-        // document fields do not migrate or soft delete via saveData
-        array_walk_recursive($old_data[$record_id][$source_event_id], function(&$value, $key) {
-                if ($key !== $record_pk) {
-                    $value = NULL;
+        if ($delete_source_data) {
+            $response = REDCap::saveData($project_id, 'array', $new_data, 'normal'); // initial write to target
+            $log_message = "Migrated form(s) " . $form_names . " from event " . $source_event_id . " to " . $target_event_id;
+
+            // soft delete all data for each field
+            array_walk_recursive($old_data[$record_id][$source_event_id], function(&$value, $key) use ($record_pk) {
+                    if ($key !== $record_pk) {
+                        $value = NULL;
+                    }
+                }
+            );
+            $delete_response = REDCap::saveData($project_id, 'array', $old_data, 'overwrite');
+
+            // previous step did not delete documents, force their migration
+            $log_message = $this->forceMigrateSourceFields($get_data, $project_id, $record_id, $source_event_id, $target_event_id, $log_message);
+        } else {
+            // Create copies of edocs for cloning
+            // necessary as if a cloned form containing an edoc is deleted, the file which all clones reference is also purged
+            if ($edocs_present) {
+                // Clone files and assign them to their respective fields in the cloned forms
+                foreach($edocs_results as $edocs_result) {
+                    if (isset($new_data[$record_id][$target_event_id][$edocs_result['field_name']])) {
+                        $path = Files::copyEdocToTemp($edocs_result['doc_id']); // clone the existing file to temp dir
+                        $file = [];
+                        $file['name'] = basename($edocs_result['doc_name']);
+                        $file['tmp_name'] = $path;
+                        $file['size'] = filesize($path);
+
+                        $new_data[$record_id][$target_event_id][$edocs_result['field_name']] =
+                            Files::uploadFile($file, $project_id);
+                    }
                 }
             }
-        );
-
-        $delete_response = REDCap::saveData($project_id, 'array', $old_data, 'overwrite');
-
-        $log_message = $this->forceMigrateSourceFields($get_data, $project_id, $record_id, $source_event_id, $target_event_id, $log_message);
+            $response = REDCap::saveData($project_id, 'array', $new_data, 'normal',
+                    'YMD', 'flat', null, true, true, true, false, true, array(), false,
+                    false); // do not skip file upload fields, see the REDCap core code Classes/Records.php
+            $log_message = "Cloned form(s) " . $form_names . " from event " . $source_event_id . " to " . $target_event_id;
+        }
 
         REDCap::logEvent("Moved data from an event to a different event", $log_message);
 
@@ -103,7 +153,7 @@ class ExternalModule extends AbstractExternalModule {
         foreach ($check_old as $field => $value) {
             if ($value !== '' && $value !== '0' && $value !== NULL &&
                 $field != REDCap::getRecordIdField()) {
-		        array_push($revisit_fields, "'$field'");
+                    array_push($revisit_fields, "'$field'");
             }
         }
 
