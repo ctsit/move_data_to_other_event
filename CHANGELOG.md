@@ -2,6 +2,15 @@
 All notable changes to Move Data to Other Event will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org/).
 
 
+## [1.1.1] - 2020-11-06
+### Changed
+- Fix bug: unauthorized access attempt caused crash (Kyle Chesney)
+- Replace DOI in Zenodo badge with the 'all versions' DOI (Philip Chase)
+
+### Added
+- add test project xml file (Kyle Chesney)
+
+
 ## [1.1.0] - 2020-02-14
 ### Changed
 - allow actions involving first form first event correct error in checking for record_pk (Kyle Chesney)
