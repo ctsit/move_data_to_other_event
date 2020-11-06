@@ -16,6 +16,9 @@ class ExternalModule extends AbstractExternalModule {
             return;
         }
 
+        // needed to bypass uncatchable exception in framework->getUser()
+        if ( !defined('USERID') ) return;
+
         if ( !$this->framework->getUser()->hasDesignRights() &&
                 ( $this->getSystemSetting('restrict_to_designers_global') ||
                   !$project_settings['allow_non_designers']['value']) )
