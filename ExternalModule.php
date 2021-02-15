@@ -80,7 +80,7 @@ class ExternalModule extends AbstractExternalModule {
             ON em.doc_id = d.value
         WHERE
             d.project_id = " . $project_id . "
-            AND d.record = " . $record_id . "
+            AND d.record = '" . $record_id . "'
             AND d.event_id = " . $source_event_id .
             $field_list;
 
@@ -168,7 +168,7 @@ class ExternalModule extends AbstractExternalModule {
              $docs_xfer_sql = "UPDATE redcap_data SET event_id = " . $target_event_id . "
                  WHERE project_id = " . $project_id . "
                  AND event_id = " . $source_event_id . "
-                 AND record = " . $record_id . "
+                 AND record = '" . $record_id . "'
                  AND field_name NOT IN ('" . REDCap::getRecordIdField() . "')
                  AND field_name IN (" . $revisit_fields . ");";
              $this->framework->query($docs_xfer_sql);
