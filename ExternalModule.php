@@ -30,6 +30,9 @@ class ExternalModule extends AbstractExternalModule {
         // __DIR__ . '/migratedata.php'; does not work due to VM symlink(?)
         $ajax_page = json_encode($this->framework->getUrl("migratedata.php"));
 
+        $this->initializeJavascriptModuleObject();
+        $this->tt_addToJavascriptModuleObject('appPathImages', APP_PATH_IMAGES);
+
         echo ("<script> var ajaxpage = {$ajax_page}; </script>");
         include('div.html');
         $this->includeJs('js/mdoe.js');
