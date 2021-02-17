@@ -1,6 +1,13 @@
 # Change Log
 All notable changes to Move Data to Other Event will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.2.0] - 2021-02-17
+### Changed
+- Wrap record_id = * in quotes to allow for non-integer record_id values (Kyle Chesney)
+
+### Added
+- Adds progress indicator to moving data (mbentz)
+
 
 ## [1.1.1] - 2020-11-06
 ### Changed

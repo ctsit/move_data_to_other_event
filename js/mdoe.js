@@ -1,4 +1,37 @@
+let module = ExternalModules['MDOE'].ExternalModule;
+
 let dialogButton = $( '<i class="fas fa-truck" type="image" style="padding: 5px; cursor: pointer;"/>' );
+let modalIdentifier = "body>.ui-dialog.ui-corner-all.ui-widget.ui-dialog-buttons[role='dialog']";
+
+// Utility function from RedCapUtil.js that is not available
+function openLoader(target) {
+    var overlay = $("<div></div>");
+    overlay.addClass("redcapLoading");
+    // insert the overlay into the target
+    target.prepend(overlay);
+    
+    // make the overlay cover the target
+    overlay.height(target.height());
+    overlay.width(target.width());
+    // create the loading spinner
+    var spinner = $('<img src="' + module.tt("appPathImages") + 'loader.gif" />');
+    var spinnerWidth = 220; // having trouble getting this dynamically
+    spinner.addClass("redcapLoading");
+    // insert the spinner into the overlay
+    overlay.append(spinner);
+    // position the spinner 30% down the overlay and in the center
+    spinner.css({
+        top: Math.floor(overlay.height() * 0.3),
+        left: Math.floor((overlay.width() - spinnerWidth) * 0.5)
+    });
+    overlay.show();
+}
+
+// Will need to be called if `location.reload()` is omitted
+function closeLoader(target) {
+    target.children(".redcapLoading").first().remove();
+}
+
 $( "#dialog-mdoe" ).dialog({
           autoOpen: false,
           draggable: true,
@@ -96,10 +129,12 @@ document.addEventListener('DOMContentLoaded', function() {
           buttons: {
             "Migrate Event Data": function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
+                openLoader($(modalIdentifier));
                 ajaxMoveEvent(sourceEventId, targetEventId, formNames, true);
             },
             "Clone Event Data": function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
+                openLoader($(modalIdentifier));
                 ajaxMoveEvent(sourceEventId, targetEventId, formNames, false);
             }
           },
@@ -158,11 +193,13 @@ document.addEventListener('DOMContentLoaded', function() {
           buttons: {
             "Migrate Form Data": function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
+                openLoader($(modalIdentifier));
                 ajaxMoveEvent(params.get('event_id'), targetEventId, [params.get('page')], true);
                 // TODO: check that previous worked before deleting
             },
             "Clone Form Data": function() {
                 const targetEventId = $(this).find('select').find(':selected').val();
+                openLoader($(modalIdentifier));
                 ajaxMoveEvent(params.get('event_id'), targetEventId, [params.get('page')], false);
             }
           },
