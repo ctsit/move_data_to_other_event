@@ -47,6 +47,7 @@ class ExternalModule extends AbstractExternalModule {
         $project_id = $project_id ?: ( ($this->framework->getProjectId()) ?: NULL );
         $record_pk = REDCap::getRecordIdField();
         $form_names = implode("', '", $form_names);
+        $redcap_data_table = REDCap::getDataTable($project_id);
 
         //TODO: sanitize without mysqli_real_escape_string
         $sql = "SELECT a.field_name FROM redcap_metadata as a
@@ -73,7 +74,7 @@ class ExternalModule extends AbstractExternalModule {
 
         $field_list = ($fields) ? " AND d.field_name IN ('" . implode('\',\'', $fields) . "');" : ";";
         $edocs_sql = "SELECT d.field_name, em.doc_id, em.stored_name, em.doc_name
-            FROM redcap_data d
+            FROM " . $redcap_data_table . " d
         INNER JOIN redcap_metadata m
             ON
             m.project_id = d.project_id
@@ -88,7 +89,6 @@ class ExternalModule extends AbstractExternalModule {
             $field_list;
 
         // TODO: consider: em.element_validation_type == 'signature'
-
         $edocs_fields = $this->framework->query($edocs_sql);
 
         $edocs_present = ($edocs_fields->num_rows > 0);
@@ -153,6 +153,7 @@ class ExternalModule extends AbstractExternalModule {
 
     function forceMigrateSourceFields($get_data, $project_id, $record_id, $source_event_id, $target_event_id, $log_message) {
         $check_old = REDCap::getData($get_data)[$record_id][$source_event_id];
+        $redcap_data_table = REDCap::getDataTable($project_id);
 
         // check for fields which did not transfer
         $revisit_fields = [];
@@ -168,7 +169,7 @@ class ExternalModule extends AbstractExternalModule {
              // explicitly excluding the record's primary key
              $revisit_fields = implode(',', $revisit_fields);
              $log_message .= ". Forced transfer of additional field(s): " . $revisit_fields;
-             $docs_xfer_sql = "UPDATE redcap_data SET event_id = " . $target_event_id . "
+             $docs_xfer_sql = "UPDATE " . $redcap_data_table . " SET event_id = " . $target_event_id . "
                  WHERE project_id = " . $project_id . "
                  AND event_id = " . $source_event_id . "
                  AND record = '" . $record_id . "'
