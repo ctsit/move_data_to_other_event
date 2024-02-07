@@ -1,3 +1,6 @@
+// Wrap in immediately invoked function expression to retain global scope purity
+(() => {
+
 let module = ExternalModules['MDOE'].ExternalModule;
 
 let dialogButton = $( '<i class="fas fa-truck" type="image" style="padding: 5px; cursor: pointer;"/>' );
@@ -261,3 +264,5 @@ function ajaxMoveEvent(sourceEventId, targetEventId, formNames = null, deleteSou
             //}
         });
 }
+
+})()
