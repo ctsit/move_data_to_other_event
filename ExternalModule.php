@@ -12,16 +12,14 @@ class ExternalModule extends AbstractExternalModule {
 
         $project_settings = $this->framework->getProjectSettings();
 
-        if (!$project_settings['active']['value']) {
-            return;
-        }
+        if (!$project_settings['active']) return;
 
         // needed to bypass uncatchable exception in framework->getUser()
         if ( !defined('USERID') ) return;
 
         if ( !$this->framework->getUser()->hasDesignRights() &&
                 ( $this->getSystemSetting('restrict_to_designers_global') ||
-                  !$project_settings['allow_non_designers']['value']) )
+                  !$project_settings['allow_non_designers']) )
         {
             return;
         }
@@ -42,24 +40,43 @@ class ExternalModule extends AbstractExternalModule {
         echo '<script src="' . $this->getUrl($path) . '">;</script>';
     }
 
+    // Equivalent to fetch_all($mysqli_result, MYSQLI_ASSOC)
+    // REDCap EM framework 15's query result objects do not support fetch_all
+    private function unspoolMysqliResult($mysqli_result) {
+        $data = [];
+        for ($i = 0; $i < $mysqli_result->num_rows; ++$i) {
+            $data[$i] = $mysqli_result->fetch_assoc();
+        }
+
+        return $data;
+    }
+
     function moveEvent($source_event_id, $target_event_id, $record_id = NULL, $project_id = NULL, $form_names = NULL, $delete_source_data = true) {
         $record_id = $record_id ?: ( ($this->framework->getRecordId()) ?: NULL ); // return in place of NULL causes errors
         $project_id = $project_id ?: ( ($this->framework->getProjectId()) ?: NULL );
         $record_pk = REDCap::getRecordIdField();
-        $form_names = implode("', '", $form_names);
         $redcap_data_table = REDCap::getDataTable($project_id);
+        // HACK: whitelist potential table names since they cannot be parameterized
+        if (!preg_match("/^redcap_data\d*$/", $redcap_data_table)) { return; }
 
-        //TODO: sanitize without mysqli_real_escape_string
         $sql = "SELECT a.field_name FROM redcap_metadata as a
-            INNER JOIN (SELECT form_name FROM redcap_events_forms WHERE event_id = " . ($source_event_id) .  ")
+            INNER JOIN (SELECT form_name FROM redcap_events_forms WHERE event_id = ?)
             as b ON a.form_name = b.form_name
-            WHERE a.project_id = " . ($project_id) . "
-            AND a.form_name IN ('" . $form_names . "')
-            ORDER BY field_order ASC;";
+            WHERE a.project_id = ?";
+
+        $sql_parameters = [$source_event_id, $project_id];
+
+        $query = $this->framework->createQuery();
+        $query->add($sql, $sql_parameters);
+        $query->add('and')->addInClause('a.form_name', $form_names);
+        $query->add("ORDER BY field_order ASC");
+
+        $result = $query->execute();
+
+        // Needed for logging
+        $form_names = implode("', '", $form_names);
 
         $fields = [];
-        $result= $this->framework->query($sql);
-
         while ($row = $result->fetch_assoc()) {
             $fields[] = $row["field_name"];
         }
@@ -72,9 +89,9 @@ class ExternalModule extends AbstractExternalModule {
             'events' => $source_event_id
         ];
 
-        $field_list = ($fields) ? " AND d.field_name IN ('" . implode('\',\'', $fields) . "');" : ";";
+        // NOTE: prepared statements can not parameterize table names
         $edocs_sql = "SELECT d.field_name, em.doc_id, em.stored_name, em.doc_name
-            FROM " . $redcap_data_table . " d
+            FROM $redcap_data_table d
         INNER JOIN redcap_metadata m
             ON
             m.project_id = d.project_id
@@ -83,17 +100,21 @@ class ExternalModule extends AbstractExternalModule {
         INNER JOIN redcap_edocs_metadata em
             ON em.doc_id = d.value
         WHERE
-            d.project_id = " . $project_id . "
-            AND d.record = '" . $record_id . "'
-            AND d.event_id = " . $source_event_id .
-            $field_list;
+            d.project_id = ?
+            AND d.record = ?
+            AND d.event_id = ?";
 
         // TODO: consider: em.element_validation_type == 'signature'
-        $edocs_fields = $this->framework->query($edocs_sql);
+        $parameters = [$project_id, $record_id, $source_event_id];
+
+        $query = $this->framework->createQuery();
+        $query->add($edocs_sql, $parameters);
+        $query->add('and')->addInClause('d.field_name', $fields);
+        $edocs_fields = $query->execute();
 
         $edocs_present = ($edocs_fields->num_rows > 0);
         if ($edocs_present) {
-            $edocs_results = $edocs_fields->fetch_all(MYSQLI_ASSOC);
+            $edocs_results = $this->unspoolMysqliResult($edocs_fields);
         }
 
         $new_data = [];
@@ -153,29 +174,41 @@ class ExternalModule extends AbstractExternalModule {
 
     function forceMigrateSourceFields($get_data, $project_id, $record_id, $source_event_id, $target_event_id, $log_message) {
         $check_old = REDCap::getData($get_data)[$record_id][$source_event_id];
+
         $redcap_data_table = REDCap::getDataTable($project_id);
+        // HACK: whitelist potential table names since they cannot be parameterized
+        if (!preg_match("/^redcap_data\d*$/", $redcap_data_table)) return;
 
         // check for fields which did not transfer
         $revisit_fields = [];
         foreach ($check_old as $field => $value) {
             if ($value !== '' && $value !== '0' && $value !== NULL &&
                 $field != REDCap::getRecordIdField()) {
-                    array_push($revisit_fields, "'$field'");
+                    array_push($revisit_fields, $field);
             }
         }
 
          if ($revisit_fields !== [])  {
              // Raw SQL to transfer docs which do not transfer or delete with saveData
              // explicitly excluding the record's primary key
-             $revisit_fields = implode(',', $revisit_fields);
+
+             $docs_xfer_sql = "UPDATE $redcap_data_table SET event_id = ?
+                 WHERE project_id = ?
+                 AND event_id = ?
+                 AND record = ?
+                 AND field_name NOT IN (?)";
+
+             $record_id_field = "'" . REDCap::getRecordIdField() . "'";
+             $docs_xfer_parameters = [$target_event_id, $project_id, $source_event_id, $record_id, $record_id_field];
+
+             $query = $this->framework->createQuery();
+             $query->add($docs_xfer_sql, $docs_xfer_parameters);
+             $query->add('and')->addInClause('field_name', $revisit_fields);
+
+             $query->execute();
+
+             $revisit_fields = implode("', '", $revisit_fields);
              $log_message .= ". Forced transfer of additional field(s): " . $revisit_fields;
-             $docs_xfer_sql = "UPDATE " . $redcap_data_table . " SET event_id = " . $target_event_id . "
-                 WHERE project_id = " . $project_id . "
-                 AND event_id = " . $source_event_id . "
-                 AND record = '" . $record_id . "'
-                 AND field_name NOT IN ('" . REDCap::getRecordIdField() . "')
-                 AND field_name IN (" . $revisit_fields . ");";
-             $this->framework->query($docs_xfer_sql);
         }
         return $log_message;
     }
