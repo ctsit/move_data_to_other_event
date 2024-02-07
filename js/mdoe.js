@@ -152,7 +152,10 @@ document.addEventListener('DOMContentLoaded', function() {
             $(dialogEvent).parent().find(".ui-dialog-buttonpane").hide();
         }
 
-        selectedColValues.css("background-color", "#ff9933");
+        // highlight column of source event
+        // append to initial style and mark important to override tr-parity
+        // https://stackoverflow.com/a/2655976/7418735
+        selectedColValues.attr('style', (i,s) => { return (s || '') + 'background-color: #ff9933 !important;' });
 
         dialogEvent
             .on('dialogclose', function(event) { selectedColValues.css("background-color", ""); })
@@ -218,8 +221,8 @@ document.addEventListener('DOMContentLoaded', function() {
             $(dialogForm).parent().find(".ui-dialog-buttonpane").hide();
         }
 
-        //highlight cell of source form
-        thisCell.css("background-color", "#ff9933");
+        // highlight cell of source form
+        thisCell.attr('style', (i,s) => { return (s || '') + 'background-color: #ff9933 !important;' });
 
         dialogForm
             .on('dialogclose', function(event) { thisCell.css("background-color", ""); })
