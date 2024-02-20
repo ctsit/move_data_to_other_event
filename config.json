@@ -2,30 +2,11 @@
     "name": "Move Data to Other Event",
     "description": "Allow privileged users to easily move data, uploaded files, and signatures between events.",
     "namespace": "MDOE\\ExternalModule",
-    "framework-version": 3,
-    "permissions": [
-        "redcap_every_page_top",
-        "redcap_save_record"
-    ],
+    "framework-version": 15,
     "authors": [
         {
-            "name": "Kyle Chesney",
-            "email": "kyle.chesney@ufl.edu",
-            "institution": "University of Florida - CTSI"
-        },
-        {
-            "name": "Michael Bentz",
-            "email": "mbentz@ufl.edu",
-            "institution": "University of Florida - CTSI"
-        },
-        {
-            "name": "Taryn Stoffs",
-            "email": "tls@ufl.edu",
-            "institution": "University of Florida - CTSI"
-        },
-        {
-            "name": "Philip Chase",
-            "email": "pbc@ufl.edu",
+            "name": "University of Florida CTS-IT",
+            "email": "CTSIT-REDCAP-MODULE-SUPPO@LISTS.UFL.EDU",
             "institution": "University of Florida - CTSI"
         }
     ],
@@ -49,6 +30,6 @@
         }
     ],
     "compatibility": {
-        "redcap-version-min": "9.3.0"
+        "redcap-version-min": "14.0.2"
     }
 }
