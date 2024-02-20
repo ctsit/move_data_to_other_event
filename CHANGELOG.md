@@ -1,6 +1,16 @@
 # Change Log
 All notable changes to Move Data to Other Event will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org/).
 
+
+## [1.3.0] - 2024-02-20
+### Added
+- Added support for REDCap 14.0.0 data tables (@ChemiKyle)
+
+### Changed
+- Update to EM framework 15 (@ChemiKyle)
+- Wrap mdoe.js in IIFE (@ChemiKyle)
+
+
 ## [1.2.0] - 2021-02-17
 ### Changed
 - Wrap record_id = * in quotes to allow for non-integer record_id values (Kyle Chesney)
